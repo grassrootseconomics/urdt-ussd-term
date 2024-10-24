@@ -23,7 +23,7 @@ type Router struct {
 func(r *Router) Route(gev *geEvent.Event) error {
 	logg.Debug("have event", "ev", gev)
 	evCC, ok := asCustodialRegistrationEvent(gev)
-	if !ok {
+	if ok {
 		return handleCustodialRegistration(evCC)
 	}
 	return fmt.Errorf("unexpected message")

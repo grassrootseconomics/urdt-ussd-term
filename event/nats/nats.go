@@ -19,7 +19,7 @@ var (
 )
 
 type NatsSubscription struct {
-	*event.Router
+	event.Router
 	ctx context.Context
 	conn *nats.Conn
 	js jetstream.JetStream
