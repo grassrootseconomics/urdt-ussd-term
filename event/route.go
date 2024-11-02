@@ -1,9 +1,12 @@
 package event
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
+
+	"git.grassecon.net/urdt/ussd/common"
 
 	geEvent "github.com/grassrootseconomics/eth-tracker/pkg/event"
 )
@@ -18,13 +21,14 @@ var (
 )
 
 type Router struct {
+	Store common.UserDataStore
 }
 
-func(r *Router) Route(gev *geEvent.Event) error {
+func(r *Router) Route(ctx context.Context, gev *geEvent.Event) error {
 	logg.Debug("have event", "ev", gev)
 	evCC, ok := asCustodialRegistrationEvent(gev)
 	if ok {
-		return handleCustodialRegistration(evCC)
+		return handleCustodialRegistration(ctx, r.Store, evCC)
 	}
 	return fmt.Errorf("unexpected message")
 }

@@ -8,9 +8,9 @@ import (
 
 	nats "github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
-
 	geEvent "github.com/grassrootseconomics/eth-tracker/pkg/event"
-
+	"git.defalsify.org/vise.git/db"
+	"git.grassecon.net/urdt/ussd/common"
 	"git.grassecon.net/term/event"
 )
 
@@ -27,8 +27,14 @@ type NatsSubscription struct {
 	cctx jetstream.ConsumeContext
 }
 
-func NewNatsSubscription() *NatsSubscription {
-	return &NatsSubscription{}
+func NewNatsSubscription(store db.Db) *NatsSubscription {
+	return &NatsSubscription{
+		Router: event.Router{
+			Store: common.UserDataStore{
+				Db: store,
+			},
+		},
+	}
 }
 
 func(n *NatsSubscription) Connect(ctx context.Context, connStr string) error {
@@ -86,7 +92,7 @@ func(n *NatsSubscription) handleEvent(m jetstream.Msg) {
 		logg.Error("nats msg deserialize fail", "err", err)
 		//fail(m)
 	} else {
-		err = n.Route(&ev)
+		err = n.Route(n.ctx, &ev)
 		if err != nil {
 			logg.Error("handler route fail", "err", err)
 			//fail(m)

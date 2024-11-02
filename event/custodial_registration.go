@@ -1,7 +1,12 @@
 package event
 
 import (
+	"context"
+
 	geEvent "github.com/grassrootseconomics/eth-tracker/pkg/event"
+
+	"git.grassecon.net/urdt/ussd/common"
+	"git.grassecon.net/term/lookup"
 )
 
 const (
@@ -9,7 +14,7 @@ const (
 )
 
 type eventCustodialRegistration struct {
-	account string
+	Account string
 }
 
 func asCustodialRegistrationEvent(gev *geEvent.Event) (*eventCustodialRegistration, bool) {
@@ -19,7 +24,7 @@ func asCustodialRegistrationEvent(gev *geEvent.Event) (*eventCustodialRegistrati
 		return nil, false
 	}
 	pl := gev.Payload
-	ev.account, ok = pl["account"].(string)
+	ev.Account, ok = pl["account"].(string)
 	if !ok {
 		return nil, false
 	}
@@ -27,6 +32,11 @@ func asCustodialRegistrationEvent(gev *geEvent.Event) (*eventCustodialRegistrati
 	return &ev, true
 }
 
-func handleCustodialRegistration(ev *eventCustodialRegistration) error {
+func handleCustodialRegistration(ctx context.Context, store common.UserDataStore, ev *eventCustodialRegistration) error {
+	identity, err := lookup.IdentityFromAddress(ctx, store, ev.Account)
+	if err != nil {
+		return err
+	}
+	_ = identity
 	return nil
 }
