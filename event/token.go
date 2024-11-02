@@ -2,6 +2,8 @@ package event
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"git.defalsify.org/vise.git/db"
 	"git.grassecon.net/urdt/ussd/common"
@@ -15,15 +17,31 @@ const (
 	DATATYPE_USERSUB = 64
 )
 
+func renderTx() {
+
+}
+
 type eventTokenTransfer struct {
 	From string
 	To string
 	Value string
 }
 
-//func updateTokenTransferList(ctx context.Context, api remote.AccountServiceInterface, store common.UserDataStore, sessionId string) error {
-//	return nil
-//}
+func updateTokenTransferList(ctx context.Context, api remote.AccountServiceInterface, store common.UserDataStore, identity lookup.Identity) error {
+	var r []string
+
+	txs, err := api.FetchTransactions(ctx, identity.ChecksumAddress)
+	if err != nil {
+		return err
+	}
+
+	for i, tx := range(txs) {
+		r = append(r, fmt.Sprintf("%d %s %s", i, tx.DateBlock, tx.TxHash[:10]))
+	}
+
+	s := strings.Join(r, "\n")
+	return store.WriteEntry(ctx, identity.SessionId, common.DATA_TRANSACTIONS, []byte(s))
+}
 
 func updateTokenList(ctx context.Context, api remote.AccountServiceInterface, store *common.UserDataStore, identity lookup.Identity) error {
 	holdings, err := api.FetchVouchers(ctx, identity.ChecksumAddress)
@@ -73,9 +91,9 @@ func updateTokenList(ctx context.Context, api remote.AccountServiceInterface, st
 //	return nil
 //}
 //
-//func updateDefaultToken(ctx context.Context, store common.UserDataStore, sessionId string, activeSym string) {
-//
-//}
+func updateDefaultToken(ctx context.Context, store *common.UserDataStore, identity lookup.Identity, activeSym string) error {
+	return nil
+}
 
 func updateToken(ctx context.Context, store *common.UserDataStore, identity lookup.Identity) error {
 	var api remote.AccountService
@@ -85,18 +103,19 @@ func updateToken(ctx context.Context, store *common.UserDataStore, identity look
 		return err
 	}
 
-//	activeSym, err := store.ReadEntry(common.DATA_ACTIVE_ADDRESS)
-//	if err == nil {
-//		return nil
-//	}
-//	if !db.IsNotFound(err) {
-//		return err
-//	}
-//
-//	err = updateDefaultToken(ctx, store, sessionId, string(activeSym))
-//	if err != nil {
-//		return err
-//	}
+	activeSym, err := store.ReadEntry(ctx, identity.SessionId, common.DATA_ACTIVE_ADDRESS)
+	if err == nil {
+		return nil
+	}
+	if !db.IsNotFound(err) {
+		return err
+	}
+
+	err = updateDefaultToken(ctx, store, identity, string(activeSym))
+	if err != nil {
+		return err
+	}
+
 //	err = updateTokenBalance(ctx, &api, store, sessionId)
 //	if err != nil {
 //		return err
