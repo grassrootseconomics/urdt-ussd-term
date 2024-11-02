@@ -12,7 +12,7 @@ type Identity struct {
 	SessionId string
 }
 
-func IdentityFromAddress(ctx context.Context, store common.UserDataStore, address string) (Identity, error) {
+func IdentityFromAddress(ctx context.Context, store *common.UserDataStore, address string) (Identity, error) {
 	var err error
 	var ident Identity
 
@@ -28,7 +28,7 @@ func IdentityFromAddress(ctx context.Context, store common.UserDataStore, addres
 	return ident, nil
 }
 
-func getSessionIdByAddress(ctx context.Context, store common.UserDataStore, address string) (string, error) {
+func getSessionIdByAddress(ctx context.Context, store *common.UserDataStore, address string) (string, error) {
 	
 	r, err := store.ReadEntry(ctx, address, common.DATA_PUBLIC_KEY_REVERSE)
 	if err != nil {

@@ -30,7 +30,7 @@ type NatsSubscription struct {
 func NewNatsSubscription(store db.Db) *NatsSubscription {
 	return &NatsSubscription{
 		Router: event.Router{
-			Store: common.UserDataStore{
+			Store: &common.UserDataStore{
 				Db: store,
 			},
 		},

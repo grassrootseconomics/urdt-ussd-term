@@ -11,6 +11,8 @@ import (
 
 const (
 	evTransfer = "TOKEN_TRANSFER"
+	// TODO: use export from urdt storage
+	DATATYPE_USERSUB = 64
 )
 
 type eventTokenTransfer struct {
@@ -23,8 +25,42 @@ type eventTokenTransfer struct {
 //	return nil
 //}
 
-func updateTokenList(ctx context.Context, api remote.AccountServiceInterface, store common.UserDataStore, identity lookup.Identity) error {
-	api.FetchVouchers(ctx, identity.ChecksumAddress)
+func updateTokenList(ctx context.Context, api remote.AccountServiceInterface, store *common.UserDataStore, identity lookup.Identity) error {
+	holdings, err := api.FetchVouchers(ctx, identity.ChecksumAddress)
+	if err != nil {
+		return err
+	}
+	metadata := common.ProcessVouchers(holdings)
+	_ = metadata
+
+	// TODO: export subprefixdb and use that instead
+	// TODO: make sure subprefixdb is thread safe when using gdbm
+	store.Db.SetPrefix(DATATYPE_USERSUB)
+
+	k := append([]byte("vouchers"), []byte("sym")...)
+	err = store.Db.Put(ctx, k, []byte(metadata.Symbols))
+	if err != nil {
+		return err
+	}
+
+	k = append([]byte("vouchers"), []byte("bal")...)
+	err = store.Db.Put(ctx, k, []byte(metadata.Balances))
+	if err != nil {
+		return err
+	}
+
+	k = append([]byte("vouchers"), []byte("deci")...)
+	err = store.Db.Put(ctx, k, []byte(metadata.Decimals))
+	if err != nil {
+		return err
+	}
+
+	k = append([]byte("vouchers"), []byte("addr")...)
+	err = store.Db.Put(ctx, k, []byte(metadata.Addresses))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -41,7 +77,7 @@ func updateTokenList(ctx context.Context, api remote.AccountServiceInterface, st
 //
 //}
 
-func updateToken(ctx context.Context, store common.UserDataStore, identity lookup.Identity) error {
+func updateToken(ctx context.Context, store *common.UserDataStore, identity lookup.Identity) error {
 	var api remote.AccountService
 
 	err := updateTokenList(ctx, &api, store, identity)
@@ -73,7 +109,7 @@ func updateToken(ctx context.Context, store common.UserDataStore, identity looku
 	return nil
 }
 
-func handleTokenTransfer(ctx context.Context, store common.UserDataStore, ev *eventTokenTransfer) error {
+func handleTokenTransfer(ctx context.Context, store *common.UserDataStore, ev *eventTokenTransfer) error {
 	identity, err := lookup.IdentityFromAddress(ctx, store, ev.From)
 	if err != nil {
 		if !db.IsNotFound(err) {

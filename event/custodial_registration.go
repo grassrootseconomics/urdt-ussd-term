@@ -32,7 +32,7 @@ func asCustodialRegistrationEvent(gev *geEvent.Event) (*eventCustodialRegistrati
 	return &ev, true
 }
 
-func handleCustodialRegistration(ctx context.Context, store common.UserDataStore, ev *eventCustodialRegistration) error {
+func handleCustodialRegistration(ctx context.Context, store *common.UserDataStore, ev *eventCustodialRegistration) error {
 	identity, err := lookup.IdentityFromAddress(ctx, store, ev.Account)
 	if err != nil {
 		return err

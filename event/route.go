@@ -21,7 +21,7 @@ var (
 )
 
 type Router struct {
-	Store common.UserDataStore
+	Store *common.UserDataStore
 }
 
 func(r *Router) Route(ctx context.Context, gev *geEvent.Event) error {

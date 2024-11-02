@@ -4,7 +4,7 @@ go 1.23.2
 
 require (
 	git.defalsify.org/vise.git v0.2.1-0.20241031204035-b588301738ed
-	git.grassecon.net/urdt/ussd v0.0.0-20241102140016-35a090ef423c
+	git.grassecon.net/urdt/ussd v0.0.0-20241102154646-e29a24b376cf
 	github.com/grassrootseconomics/eth-tracker v1.3.0-rc
 	github.com/nats-io/nats.go v1.37.0
 )
