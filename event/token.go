@@ -95,8 +95,14 @@ func updateTokenList(ctx context.Context, api remote.AccountServiceInterface, st
 //	return nil
 //}
 //
+
 func updateDefaultToken(ctx context.Context, store *common.UserDataStore, identity lookup.Identity, activeSym string) error {
-	return nil
+	pfxDb := common.StoreToPrefixDb(store, []byte("vouchers"))
+	tokenData, err := common.GetVoucherData(ctx, pfxDb, activeSym)
+	if err != nil {
+		return err
+	}
+	return common.UpdateVoucherData(ctx, store, identity.SessionId, tokenData)
 }
 
 func updateWait(ctx context.Context, api remote.AccountServiceInterface) error {
@@ -124,15 +130,6 @@ func updateToken(ctx context.Context, store *common.UserDataStore, identity look
 		return err
 	}
 
-//	err = updateTokenBalance(ctx, &api, store, sessionId)
-//	if err != nil {
-//		return err
-//	}
-//	err = updateTokenTransferList(ctx, &api, store, sessionId)
-//	if err != nil {
-//		return err
-//	}
-//	
 	return nil
 }
 
