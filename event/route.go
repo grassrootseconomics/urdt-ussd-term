@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"os"
 
-	"git.grassecon.net/urdt/ussd/common"
-
 	geEvent "github.com/grassrootseconomics/eth-tracker/pkg/event"
+
+	"git.grassecon.net/urdt/ussd/common"
 )
 
 // TODO: this vocabulary should be public in and provided by the eth-tracker repo

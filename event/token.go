@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"strconv"
+
+	geEvent "github.com/grassrootseconomics/eth-tracker/pkg/event"
 
 	"git.defalsify.org/vise.git/db"
 	"git.grassecon.net/urdt/ussd/common"
@@ -12,7 +15,7 @@ import (
 )
 
 const (
-	evTransfer = "TOKEN_TRANSFER"
+	evTokenTransfer = "TOKEN_TRANSFER"
 	// TODO: use export from urdt storage
 	DATATYPE_USERSUB = 64
 )
@@ -24,7 +27,8 @@ func renderTx() {
 type eventTokenTransfer struct {
 	From string
 	To string
-	Value string
+	Value int
+	TxHash string
 }
 
 func updateTokenTransferList(ctx context.Context, api remote.AccountServiceInterface, store common.UserDataStore, identity lookup.Identity) error {
@@ -95,6 +99,10 @@ func updateDefaultToken(ctx context.Context, store *common.UserDataStore, identi
 	return nil
 }
 
+func updateWait(ctx context.Context, api remote.AccountServiceInterface) error {
+	return nil
+}
+
 func updateToken(ctx context.Context, store *common.UserDataStore, identity lookup.Identity) error {
 	var api remote.AccountService
 
@@ -126,6 +134,43 @@ func updateToken(ctx context.Context, store *common.UserDataStore, identity look
 //	}
 //	
 	return nil
+}
+
+func asTokenTransferEvent(gev *geEvent.Event) (*eventTokenTransfer, bool) {
+	var err error
+	var ok bool
+	var ev eventTokenTransfer
+
+	if gev.TxType != evTokenTransfer {
+		return nil, false
+	}
+
+	pl := gev.Payload
+	// assuming from and to are checksum addresses
+	ev.From, ok = pl["from"].(string)
+	if !ok {
+		return nil, false
+	}
+	ev.To, ok = pl["to"].(string)
+	if !ok {
+		return nil, false
+	}
+	ev.TxHash, err = common.NormalizeHex(gev.TxHash)
+	if err != nil {
+		logg.Error("could not decode tx hash", "tx", gev.TxHash, "err", err)
+		return nil, false
+	}
+
+	value, ok := pl["value"].(string)
+	if !ok {
+		return nil, false
+	}
+	ev.Value, err = strconv.Atoi(value)
+	if err != nil {
+		logg.Error("could not decode value", "value", value, "err", err)
+		return nil, false
+	}
+	return &ev, true
 }
 
 func handleTokenTransfer(ctx context.Context, store *common.UserDataStore, ev *eventTokenTransfer) error {
