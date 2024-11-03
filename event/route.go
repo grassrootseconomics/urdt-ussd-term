@@ -3,11 +3,10 @@ package event
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"os"
 
 	geEvent "github.com/grassrootseconomics/eth-tracker/pkg/event"
 
+	"git.defalsify.org/vise.git/logging"
 	"git.grassecon.net/urdt/ussd/common"
 )
 
@@ -17,7 +16,7 @@ const (
 )
 
 var (
-	logg = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	logg = logging.NewVanilla().WithDomain("term-event")
 )
 
 type Router struct {
@@ -25,10 +24,15 @@ type Router struct {
 }
 
 func(r *Router) Route(ctx context.Context, gev *geEvent.Event) error {
-	logg.Debug("have event", "ev", gev)
+	logg.DebugCtxf(ctx, "have event", "ev", gev)
 	evCC, ok := asCustodialRegistrationEvent(gev)
 	if ok {
 		return handleCustodialRegistration(ctx, r.Store, evCC)
 	}
+	evTT, ok := asTokenTransferEvent(gev)
+	if ok {
+		return handleTokenTransfer(ctx, r.Store, evTT)
+	}
+
 	return fmt.Errorf("unexpected message")
 }

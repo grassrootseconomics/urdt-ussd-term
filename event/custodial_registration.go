@@ -28,7 +28,7 @@ func asCustodialRegistrationEvent(gev *geEvent.Event) (*eventCustodialRegistrati
 	if !ok {
 		return nil, false
 	}
-	logg.Debug("parsed ev", "pl", pl, "ev", ev)
+	logg.Debugf("parsed ev", "pl", pl, "ev", ev)
 	return &ev, true
 }
 

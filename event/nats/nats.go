@@ -3,19 +3,18 @@ package nats
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
-	"os"
 
 	nats "github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	geEvent "github.com/grassrootseconomics/eth-tracker/pkg/event"
+	"git.defalsify.org/vise.git/logging"
 	"git.defalsify.org/vise.git/db"
 	"git.grassecon.net/urdt/ussd/common"
 	"git.grassecon.net/term/event"
 )
 
 var (
-	logg = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	logg = logging.NewVanilla().WithDomain("term-nats")
 )
 
 type NatsSubscription struct {
@@ -78,30 +77,30 @@ func(n *NatsSubscription) Close() error {
 func fail(m jetstream.Msg) {
 	err := m.Nak()
 	if err != nil {
-		logg.Error("nats nak fail", "err", err)
+		logg.Errorf("nats nak fail", "err", err)
 	}
 }
 
 func(n *NatsSubscription) handleEvent(m jetstream.Msg) {
 	var ev geEvent.Event
 
-	logg.Debug("have msg", "err", m)
+	logg.DebugCtxf(n.ctx, "have msg", "err", m)
 	b := m.Data()
 	err := json.Unmarshal(b, &ev)
 	if err != nil {
-		logg.Error("nats msg deserialize fail", "err", err)
+		logg.ErrorCtxf(n.ctx, "nats msg deserialize fail", "err", err)
 		//fail(m)
 	} else {
 		err = n.Route(n.ctx, &ev)
 		if err != nil {
-			logg.Error("handler route fail", "err", err)
+			logg.ErrorCtxf(n.ctx, "handler route fail", "err", err)
 			//fail(m)
 		}
 	}
 	err = m.Ack()
 	if err != nil {
-		logg.Error("ack fail", "err", err)
+		logg.ErrorCtxf(n.ctx, "ack fail", "err", err)
 		panic("ack fail")
 	}
-	logg.Debug("handle msg complete")
+	logg.DebugCtxf(n.ctx, "handle msg complete")
 }

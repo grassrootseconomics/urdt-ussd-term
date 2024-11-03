@@ -10,7 +10,6 @@ import (
 
 	"git.defalsify.org/vise.git/db"
 	"git.grassecon.net/urdt/ussd/common"
-	"git.grassecon.net/urdt/ussd/remote"
 	"git.grassecon.net/term/lookup"
 )
 
@@ -31,10 +30,10 @@ type eventTokenTransfer struct {
 	TxHash string
 }
 
-func updateTokenTransferList(ctx context.Context, api remote.AccountServiceInterface, store common.UserDataStore, identity lookup.Identity) error {
+func updateTokenTransferList(ctx context.Context, store common.UserDataStore, identity lookup.Identity) error {
 	var r []string
 
-	txs, err := api.FetchTransactions(ctx, identity.ChecksumAddress)
+	txs, err := Api.FetchTransactions(ctx, identity.ChecksumAddress)
 	if err != nil {
 		return err
 	}
@@ -47,8 +46,8 @@ func updateTokenTransferList(ctx context.Context, api remote.AccountServiceInter
 	return store.WriteEntry(ctx, identity.SessionId, common.DATA_TRANSACTIONS, []byte(s))
 }
 
-func updateTokenList(ctx context.Context, api remote.AccountServiceInterface, store *common.UserDataStore, identity lookup.Identity) error {
-	holdings, err := api.FetchVouchers(ctx, identity.ChecksumAddress)
+func updateTokenList(ctx context.Context, store *common.UserDataStore, identity lookup.Identity) error {
+	holdings, err := Api.FetchVouchers(ctx, identity.ChecksumAddress)
 	if err != nil {
 		return err
 	}
@@ -86,16 +85,6 @@ func updateTokenList(ctx context.Context, api remote.AccountServiceInterface, st
 	return nil
 }
 
-//func updateTokenBalance(ctx context.Context, api remote.AccountServiceInterface, store common.UserDataStore, sessionId string) error {
-//	r, err := api.CheckBalance(ctx, sessionId)
-//	if err != nil {
-//		return err
-//	}
-//	//store.WriteEntry()
-//	return nil
-//}
-//
-
 func updateDefaultToken(ctx context.Context, store *common.UserDataStore, identity lookup.Identity, activeSym string) error {
 	pfxDb := common.StoreToPrefixDb(store, []byte("vouchers"))
 	tokenData, err := common.GetVoucherData(ctx, pfxDb, activeSym)
@@ -105,14 +94,12 @@ func updateDefaultToken(ctx context.Context, store *common.UserDataStore, identi
 	return common.UpdateVoucherData(ctx, store, identity.SessionId, tokenData)
 }
 
-func updateWait(ctx context.Context, api remote.AccountServiceInterface) error {
+func updateWait(ctx context.Context) error {
 	return nil
 }
 
 func updateToken(ctx context.Context, store *common.UserDataStore, identity lookup.Identity) error {
-	var api remote.AccountService
-
-	err := updateTokenList(ctx, &api, store, identity)
+	err := updateTokenList(ctx, store, identity)
 	if err != nil {
 		return err
 	}
@@ -154,7 +141,7 @@ func asTokenTransferEvent(gev *geEvent.Event) (*eventTokenTransfer, bool) {
 	}
 	ev.TxHash, err = common.NormalizeHex(gev.TxHash)
 	if err != nil {
-		logg.Error("could not decode tx hash", "tx", gev.TxHash, "err", err)
+		logg.Errorf("could not decode tx hash", "tx", gev.TxHash, "err", err)
 		return nil, false
 	}
 
@@ -164,7 +151,7 @@ func asTokenTransferEvent(gev *geEvent.Event) (*eventTokenTransfer, bool) {
 	}
 	ev.Value, err = strconv.Atoi(value)
 	if err != nil {
-		logg.Error("could not decode value", "value", value, "err", err)
+		logg.Errorf("could not decode value", "value", value, "err", err)
 		return nil, false
 	}
 	return &ev, true
