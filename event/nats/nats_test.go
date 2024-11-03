@@ -3,6 +3,8 @@ package nats
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -18,11 +20,20 @@ import (
 	"git.grassecon.net/term/event"
 )
 
-func init() {
-}
-
 const (
+	txBlock = 42
+	tokenAddress = "0x765DE816845861e75A25fCA122bb6898B8B1282a"
+	tokenSymbol = "FOO"
+	tokenName = "Foo Token"
+	tokenDecimals = 6
+	txValue = 1337
+	tokenBalance = 362436
+	txTimestamp = 1730592500
+	txHash = "0xabcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+	sinkAddress = "0xb42C5920014eE152F2225285219407938469BBfA"
 	aliceChecksum = "0xeae046BF396e91f5A8D74f863dC57c107c8a4a70"
+	bobChecksum = "0xB3117202371853e24B725d4169D87616A7dDb127"
+	aliceSession = "5553425"
 )
 
 // TODO: jetstream, would have been nice of you to provide an easier way to make a mock msg
@@ -97,10 +108,10 @@ func(m mockApi) FetchVouchers(ctx context.Context, publicKey string) ([]dataserv
 	logg.DebugCtxf(ctx, "mockapi fetchvouchers", "key", publicKey)
 	return []dataserviceapi.TokenHoldings{
 		dataserviceapi.TokenHoldings{
-			ContractAddress: "0xeE0A29AE1BB7a033c8277C04780c4aBcf4388E93",
-			TokenSymbol: "FOO",
-			TokenDecimals: "6",
-			Balance: "362436",
+			ContractAddress: tokenAddress,
+			TokenSymbol: tokenSymbol,
+			TokenDecimals: strconv.Itoa(tokenDecimals),
+			Balance: strconv.Itoa(tokenBalance),
 		},
 	}, nil
 }
@@ -109,24 +120,24 @@ func(m mockApi) FetchTransactions(ctx context.Context, publicKey string) ([]data
 	logg.DebugCtxf(ctx, "mockapi fetchtransactions", "key", publicKey)
 	return []dataserviceapi.Last10TxResponse{
 		dataserviceapi.Last10TxResponse{
-			Sender: "0xeae046BF396e91f5A8D74f863dC57c107c8a4a70",
-			Recipient: "B3117202371853e24B725d4169D87616A7dDb127",
-			TransferValue: "1337",
-			ContractAddress: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
-			TxHash: "0xabcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-			DateBlock: time.Unix(1730592500, 0),
-			TokenSymbol: "FOO",
-			TokenDecimals: "6",
+			Sender: aliceChecksum,
+			Recipient: bobChecksum,
+			TransferValue: strconv.Itoa(txValue),
+			ContractAddress: tokenAddress,
+			TxHash: txHash,
+			DateBlock: time.Unix(txTimestamp, 0),
+			TokenSymbol: tokenSymbol,
+			TokenDecimals: strconv.Itoa(tokenDecimals),
 		},
 	}, nil
 }
 
 func(m mockApi) VoucherData(ctx context.Context, address string) (*models.VoucherDataResult, error) {
 	return &models.VoucherDataResult{
-		TokenSymbol: "FOO",
-		TokenName: "Foo Token",
-		TokenDecimals: "6",
-		SinkAddress: "0xb42C5920014eE152F2225285219407938469BBfA",
+		TokenSymbol: tokenSymbol,
+		TokenName: tokenName,
+		TokenDecimals: strconv.Itoa(tokenDecimals),
+		SinkAddress: sinkAddress,
 	}, nil
 }
 
@@ -150,7 +161,6 @@ func TestHandleMsg(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	aliceSession := "5553425"
 	userDb.SetSession(alice)
 	userDb.SetPrefix(db.DATATYPE_USERDATA)
 	err = userDb.Put(ctx, common.PackKey(common.DATA_PUBLIC_KEY_REVERSE, []byte{}), []byte(aliceSession))
@@ -160,19 +170,19 @@ func TestHandleMsg(t *testing.T) {
 
 	sub := NewNatsSubscription(userDb)
 
-	data := `{
-	"block": 42,
-	"contractAddress": "0x765DE816845861e75A25fCA122bb6898B8B1282a",
+	data := fmt.Sprintf(`{
+	"block": %d,
+	"contractAddress": "%s",
 	"success": true,
-	"timestamp": 1730592500,
-	"transactionHash": "0xabcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+	"timestamp": %d,
+	"transactionHash": "%s",
 	"transactionType": "TOKEN_TRANSFER",
 	"payload": {
-		"from": "0xeae046BF396e91f5A8D74f863dC57c107c8a4a70",
-		"to": "B3117202371853e24B725d4169D87616A7dDb127",
-		"value": "1337"
+		"from": "%s",
+		"to": "%s",
+		"value": "%d"
 	}
-}`
+}`, txBlock, tokenAddress, txTimestamp, txHash, aliceChecksum, bobChecksum, txValue)
 	msg := &testMsg{
 		data: []byte(data),
 	}
@@ -185,16 +195,16 @@ func TestHandleMsg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(v, []byte("FOO")) {
-		t.Fatalf("expected 'FOO', got %s", v)
+	if !bytes.Equal(v, []byte(tokenSymbol)) {
+		t.Fatalf("expected '%s', got %s", tokenSymbol, v)
 	}
 
 	v, err = store.ReadEntry(ctx, aliceSession, common.DATA_ACTIVE_BAL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(v, []byte("362436")) {
-		t.Fatalf("expected '362436', got %s", v)
+	if !bytes.Equal(v, []byte(strconv.Itoa(tokenBalance))) {
+		t.Fatalf("expected '%d', got %s", tokenBalance, v)
 	}
 
 	v, err = store.ReadEntry(ctx, aliceSession, common.DATA_TRANSACTIONS)
@@ -212,7 +222,7 @@ func TestHandleMsg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(v, []byte("1:FOO")) {
-		t.Fatalf("expected '1:FOO', got %s", v)
+	if !bytes.Contains(v, []byte(fmt.Sprintf("1:%s", tokenSymbol))) {
+		t.Fatalf("expected '1:%s', got %s", tokenSymbol, v)
 	}
 }
