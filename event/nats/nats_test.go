@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"bytes"
 	"context"
 	"testing"
 	"time"
@@ -104,7 +105,19 @@ func(m mockApi) FetchVouchers(ctx context.Context, publicKey string) ([]dataserv
 }
 
 func(m mockApi) FetchTransactions(ctx context.Context, publicKey string) ([]dataserviceapi.Last10TxResponse, error) {
-	return nil, nil
+	logg.DebugCtxf(ctx, "mockapi fetchtransactions", "key", publicKey)
+	return []dataserviceapi.Last10TxResponse{
+		dataserviceapi.Last10TxResponse{
+			Sender: "0xeae046BF396e91f5A8D74f863dC57c107c8a4a70",
+			Recipient: "B3117202371853e24B725d4169D87616A7dDb127",
+			TransferValue: "1337",
+			ContractAddress: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
+			TxHash: "0xabcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+			DateBlock: time.Unix(1730592500, 0),
+			TokenSymbol: "FOO",
+			TokenDecimals: "6",
+		},
+	}, nil
 }
 
 func(m mockApi) VoucherData(ctx context.Context, address string) (*models.VoucherDataResult, error) {
@@ -163,4 +176,32 @@ func TestHandleMsg(t *testing.T) {
 		data: []byte(data),
 	}
 	sub.handleEvent(msg)
+
+	store := common.UserDataStore{
+		Db: userDb,
+	}
+	v, err := store.ReadEntry(ctx, aliceSession, common.DATA_ACTIVE_SYM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(v, []byte("FOO")) {
+		t.Fatalf("expected 'FOO', got %s", v)
+	}
+
+	v, err = store.ReadEntry(ctx, aliceSession, common.DATA_ACTIVE_BAL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(v, []byte("362436")) {
+		t.Fatalf("expected '362436', got %s", v)
+	}
+
+	v, err = store.ReadEntry(ctx, aliceSession, common.DATA_TRANSACTIONS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(v) == 0 {
+		t.Fatal("no transaction data")
+	}
+	t.Logf("tx %s", v)
 }

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	geEvent "github.com/grassrootseconomics/eth-tracker/pkg/event"
+	dataserviceapi "github.com/grassrootseconomics/ussd-data-service/pkg/api"
 
 	"git.defalsify.org/vise.git/db"
 	"git.grassecon.net/urdt/ussd/common"
@@ -31,7 +32,11 @@ type eventTokenTransfer struct {
 	VoucherAddress string
 }
 
-func updateTokenTransferList(ctx context.Context, store common.UserDataStore, identity lookup.Identity) error {
+func formatTransaction(idx int, tx dataserviceapi.Last10TxResponse) string {
+	return fmt.Sprintf("%d %s %s", idx, tx.DateBlock, tx.TxHash[:10])
+}
+
+func updateTokenTransferList(ctx context.Context, store *common.UserDataStore, identity lookup.Identity) error {
 	var r []string
 
 	txs, err := lookup.Api.FetchTransactions(ctx, identity.ChecksumAddress)
@@ -40,10 +45,11 @@ func updateTokenTransferList(ctx context.Context, store common.UserDataStore, id
 	}
 
 	for i, tx := range(txs) {
-		r = append(r, fmt.Sprintf("%d %s %s", i, tx.DateBlock, tx.TxHash[:10]))
+		r = append(r, formatTransaction(i, tx))
 	}
 
 	s := strings.Join(r, "\n")
+
 	return store.WriteEntry(ctx, identity.SessionId, common.DATA_TRANSACTIONS, []byte(s))
 }
 
@@ -134,6 +140,11 @@ func updateToken(ctx context.Context, store *common.UserDataStore, identity look
 	logg.Debugf("barfoo")
 
 	err = updateDefaultToken(ctx, store, identity, string(activeSym))
+	if err != nil {
+		return err
+	}
+
+	err = updateTokenTransferList(ctx, store, identity)
 	if err != nil {
 		return err
 	}
