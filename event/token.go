@@ -22,12 +22,20 @@ const (
 
 // fields used for handling token transfer event.
 type eventTokenTransfer struct {
+	To string
+	Value int
+	VoucherAddress string
+	TxHash string
 	From string
+}
+
+type eventTokenMint struct {
 	To string
 	Value int
 	TxHash string
 	VoucherAddress string
 }
+
 
 // formatter for transaction data
 //
@@ -215,7 +223,7 @@ func handleTokenTransfer(ctx context.Context, store *common.UserDataStore, ev *e
 		}
 	}
 
-	if strings.Compare(ev.To, ev.From) {
+	if strings.Compare(ev.To, ev.From) != 0 {
 		identity, err = lookup.IdentityFromAddress(ctx, store, ev.To)
 		if err != nil {
 			if !db.IsNotFound(err) {
@@ -229,5 +237,21 @@ func handleTokenTransfer(ctx context.Context, store *common.UserDataStore, ev *e
 		}
 	}
 
+	return nil
+}
+
+// handle token mint.
+func handleTokenMint(ctx context.Context, store *common.UserDataStore, ev *eventTokenMint) error {
+	identity, err := lookup.IdentityFromAddress(ctx, store, ev.To)
+	if err != nil {
+		if !db.IsNotFound(err) {
+			return err
+		}
+	} else {
+		err = updateToken(ctx, store, identity, ev.VoucherAddress)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
