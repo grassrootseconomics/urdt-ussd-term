@@ -13,7 +13,7 @@ import (
 	"git.grassecon.net/urdt/ussd/common"
 	"git.grassecon.net/urdt/ussd/config"
 	"git.grassecon.net/urdt/ussd/models"
-	"git.grassecon.net/term/event"
+	"git.grassecon.net/term/lookup"
 )
 
 func init() {
@@ -107,13 +107,22 @@ func(m mockApi) FetchTransactions(ctx context.Context, publicKey string) ([]data
 	return nil, nil
 }
 
+func(m mockApi) VoucherData(ctx context.Context, address string) (*models.VoucherDataResult, error) {
+	return &models.VoucherDataResult{
+		TokenSymbol: "FOO",
+		TokenName: "Foo Token",
+		TokenDecimals: "6",
+		SinkAddress: "0xb42C5920014eE152F2225285219407938469BBfA",
+	}, nil
+}
+
 func TestHandleMsg(t *testing.T) {
 	err := config.LoadConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	event.Api = mockApi{}
+	lookup.Api = mockApi{}
 
 	ctx := context.Background()
 	userDb := memdb.NewMemDb()

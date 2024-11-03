@@ -1,4 +1,4 @@
-package event
+package lookup
 
 import (
 	"git.grassecon.net/urdt/ussd/remote"

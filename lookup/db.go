@@ -35,7 +35,6 @@ func IdentityFromAddress(ctx context.Context, store *common.UserDataStore, addre
 }
 
 func getSessionIdByAddress(ctx context.Context, store *common.UserDataStore, address string) (string, error) {
-	logg.Debugf("fooar")
 	// TODO: replace with userdatastore when double sessionid issue fixed
 	//r, err := store.ReadEntry(ctx, address, common.DATA_PUBLIC_KEY_REVERSE)
 	store.Db.SetPrefix(db.DATATYPE_USERDATA)
