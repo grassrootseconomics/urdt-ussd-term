@@ -3,6 +3,7 @@ package nats
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	nats "github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -11,6 +12,7 @@ import (
 	"git.defalsify.org/vise.git/db"
 	"git.grassecon.net/urdt/ussd/common"
 	"git.grassecon.net/term/event"
+	"git.grassecon.net/term/config"
 )
 
 var (
@@ -36,6 +38,19 @@ func NewNatsSubscription(store db.Db) *NatsSubscription {
 	}
 }
 
+func toServerInfo(conn *nats.Conn) string {
+	return fmt.Sprintf("%s@%s (v%s)", conn.ConnectedServerName(), conn.ConnectedUrlRedacted(), conn.ConnectedServerVersion())
+}
+
+func disconnectHandler(conn *nats.Conn, err error) {
+	logg.Errorf("nats disconnected", "status", conn.Status(), "reconnects", conn.Stats().Reconnects, "err", err)
+}
+
+func reconnectHandler(conn *nats.Conn) {
+	serverInfo := toServerInfo(conn)
+	logg.Errorf("nats reconnected", "status", conn.Status(), "reconnects", conn.Stats().Reconnects, "server", serverInfo)
+}
+
 func(n *NatsSubscription) Connect(ctx context.Context, connStr string) error {
 	var err error
 
@@ -43,19 +58,23 @@ func(n *NatsSubscription) Connect(ctx context.Context, connStr string) error {
 	if err != nil {
 		return err
 	}
+	n.conn.SetDisconnectErrHandler(disconnectHandler)
+	n.conn.SetReconnectHandler(reconnectHandler)
 	n.js, err = jetstream.New(n.conn)
 	if err != nil {
 		return err
 	}
 	n.cs, err = n.js.CreateConsumer(ctx, "TRACKER", jetstream.ConsumerConfig{
-		Name: "omnom",
-		Durable: "omnom",
+		Name: config.JetstreamClientName,
+		Durable: config.JetstreamClientName,
 		FilterSubjects: []string{"TRACKER.*"},
 	})
 	if err != nil {
 		return err
 	}
 
+	serverInfo := toServerInfo(n.conn)
+	logg.DebugCtxf(ctx, "nats connected, starting consumer", "status", n.conn.Status(), "server", serverInfo)
 	n.ctx = ctx
 	n.cctx, err = n.cs.Consume(n.handleEvent)
 	if err != nil {

@@ -9,18 +9,11 @@ import (
 
 	"git.defalsify.org/vise.git/db/mem"
 
-	"git.grassecon.net/urdt/ussd/config"
-	"git.grassecon.net/urdt/ussd/initializers"
+	"git.grassecon.net/term/config"
 	"git.grassecon.net/term/event/nats"
 )
 
-func init() {
-	initializers.LoadEnvVariables()
-}
-
 func main() {
-	config.LoadConfig()
-
 	ctx := context.Background()
 	db := mem.NewMemDb()
 	err := db.Connect(ctx, "")
@@ -29,7 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 	n := nats.NewNatsSubscription(db)
-	err = n.Connect(ctx, "localhost:4222")
+	err = n.Connect(ctx, config.JetstreamURL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Stream connect err: %v", err)
 		os.Exit(1)
