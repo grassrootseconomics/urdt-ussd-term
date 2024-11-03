@@ -15,6 +15,7 @@ import (
 	"git.grassecon.net/urdt/ussd/config"
 	"git.grassecon.net/urdt/ussd/models"
 	"git.grassecon.net/term/lookup"
+	"git.grassecon.net/term/event"
 )
 
 func init() {
@@ -200,8 +201,18 @@ func TestHandleMsg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(v) == 0 {
+	if !bytes.Contains(v, []byte("abcdef")) {
 		t.Fatal("no transaction data")
 	}
-	t.Logf("tx %s", v)
+
+	userDb.SetPrefix(event.DATATYPE_USERSUB)
+	userDb.SetSession(aliceSession)
+	k := append([]byte("vouchers"), []byte("sym")...)
+	v, err = userDb.Get(ctx, k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(v, []byte("1:FOO")) {
+		t.Fatalf("expected '1:FOO', got %s", v)
+	}
 }
