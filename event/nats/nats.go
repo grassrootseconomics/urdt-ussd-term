@@ -9,7 +9,6 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 	geEvent "github.com/grassrootseconomics/eth-tracker/pkg/event"
 	"git.defalsify.org/vise.git/logging"
-	"git.defalsify.org/vise.git/db"
 	"git.grassecon.net/urdt/ussd/common"
 	"git.grassecon.net/term/event"
 	"git.grassecon.net/term/config"
@@ -32,12 +31,10 @@ type NatsSubscription struct {
 }
 
 // NewNatsSubscription creates a new NatsSubscription with the given user store.
-func NewNatsSubscription(store db.Db) *NatsSubscription {
+func NewNatsSubscription(store common.StorageServices) *NatsSubscription {
 	return &NatsSubscription{
 		Router: event.Router{
-			Store: &common.UserDataStore{
-				Db: store,
-			},
+			Store: store,
 		},
 	}
 }

@@ -141,8 +141,10 @@ func TestHandleMsg(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
-	sub := NewNatsSubscription(userDb)
+	storageService := &testutil.TestStorageService{
+		Store: userDb,
+	}
+	sub := NewNatsSubscription(storageService)
 
 	data := fmt.Sprintf(`{
 	"block": %d,

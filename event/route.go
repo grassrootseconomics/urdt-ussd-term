@@ -16,8 +16,7 @@ var (
 
 // Router is responsible for invoking handlers corresponding to events.
 type Router struct {
-	// User data store abstraction over application data.
-	Store *common.UserDataStore
+	Store common.StorageServices
 }
 
 // Route parses an event from the event stream, and resolves the handler
@@ -27,13 +26,20 @@ type Router struct {
 // handler fails to successfully execute.
 func(r *Router) Route(ctx context.Context, gev *geEvent.Event) error {
 	logg.DebugCtxf(ctx, "have event", "ev", gev)
+	store, err := r.Store.GetUserdataDb(ctx)
+	if err != nil {
+		return err
+	}
+	userStore := &common.UserDataStore{
+		Db: store,
+	}
 	evCC, ok := asCustodialRegistrationEvent(gev)
 	if ok {
-		return handleCustodialRegistration(ctx, r.Store, evCC)
+		return handleCustodialRegistration(ctx, userStore, evCC)
 	}
 	evTT, ok := asTokenTransferEvent(gev)
 	if ok {
-		return handleTokenTransfer(ctx, r.Store, evTT)
+		return handleTokenTransfer(ctx, userStore, evTT)
 	}
 
 	return fmt.Errorf("unexpected message")
