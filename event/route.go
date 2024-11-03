@@ -35,7 +35,11 @@ func(r *Router) Route(ctx context.Context, gev *geEvent.Event) error {
 	}
 	evCC, ok := asCustodialRegistrationEvent(gev)
 	if ok {
-		return handleCustodialRegistration(ctx, userStore, evCC)
+		pr, err := r.Store.GetPersister(ctx)
+		if err != nil {
+			return err
+		}
+		return handleCustodialRegistration(ctx, userStore, pr, evCC)
 	}
 	evTT, ok := asTokenTransferEvent(gev)
 	if ok {

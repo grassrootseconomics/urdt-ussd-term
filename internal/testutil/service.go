@@ -21,7 +21,7 @@ func(ss *TestStorageService) GetUserdataDb(ctx context.Context) (db.Db, error) {
 
 // GetPersister implements urdt/ussd/common.StorageServices.
 func(ts *TestStorageService) GetPersister(ctx context.Context) (*persist.Persister, error) {
-	return nil, errors.New("not implemented")
+	return persist.NewPersister(ts.Store), nil
 }
 
 // GetResource implements urdt/ussd/common.StorageServices.

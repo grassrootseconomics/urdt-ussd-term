@@ -78,6 +78,7 @@ func TestTokenTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// TODO: deduplicate test setup
 	userDb.SetSession(alice)
 	userDb.SetPrefix(db.DATATYPE_USERDATA)
 	err = userDb.Put(ctx, common.PackKey(common.DATA_PUBLIC_KEY_REVERSE, []byte{}), []byte(testutil.AliceSession))
@@ -97,6 +98,43 @@ func TestTokenTransfer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	v, err := store.ReadEntry(ctx, testutil.AliceSession, common.DATA_ACTIVE_SYM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(v, []byte(tokenSymbol)) {
+		t.Fatalf("expected '%s', got %s", tokenSymbol, v)
+	}
+
+	v, err = store.ReadEntry(ctx, testutil.AliceSession, common.DATA_ACTIVE_BAL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(v, []byte(strconv.Itoa(tokenBalance))) {
+		t.Fatalf("expected '%d', got %s", tokenBalance, v)
+	}
+
+	v, err = store.ReadEntry(ctx, testutil.AliceSession, common.DATA_TRANSACTIONS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(v, []byte("abcdef")) {
+		t.Fatal("no transaction data")
+	}
+
+	userDb.SetPrefix(DATATYPE_USERSUB)
+	userDb.SetSession(testutil.AliceSession)
+	k := append([]byte("vouchers"), []byte("sym")...)
+	v, err = userDb.Get(ctx, k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(v, []byte(fmt.Sprintf("1:%s", tokenSymbol))) {
+		t.Fatalf("expected '1:%s', got %s", tokenSymbol, v)
+	}
+
+
 }
 
 func TestTokenMint(t *testing.T) {
