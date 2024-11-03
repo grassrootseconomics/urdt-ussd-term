@@ -16,14 +16,11 @@ import (
 
 const (
 	evTokenTransfer = "TOKEN_TRANSFER"
-	// TODO: use export from urdt storage
+	// TODO: export from urdt storage package
 	DATATYPE_USERSUB = 64
 )
 
-func renderTx() {
-
-}
-
+// fields used for handling token transfer event.
 type eventTokenTransfer struct {
 	From string
 	To string
@@ -32,10 +29,14 @@ type eventTokenTransfer struct {
 	VoucherAddress string
 }
 
+// formatter for transaction data
+//
+// TODO: current formatting is a placeholder.
 func formatTransaction(idx int, tx dataserviceapi.Last10TxResponse) string {
 	return fmt.Sprintf("%d %s %s", idx, tx.DateBlock, tx.TxHash[:10])
 }
 
+// refresh and store transaction history.
 func updateTokenTransferList(ctx context.Context, store *common.UserDataStore, identity lookup.Identity) error {
 	var r []string
 
@@ -53,6 +54,9 @@ func updateTokenTransferList(ctx context.Context, store *common.UserDataStore, i
 	return store.WriteEntry(ctx, identity.SessionId, common.DATA_TRANSACTIONS, []byte(s))
 }
 
+// refresh and store token list.
+//
+// TODO: when subprefixdb has been exported, can use function in ...urdt/ussd/common/ instead
 func updateTokenList(ctx context.Context, store *common.UserDataStore, identity lookup.Identity) error {
 	holdings, err := lookup.Api.FetchVouchers(ctx, identity.ChecksumAddress)
 	if err != nil {
@@ -61,7 +65,6 @@ func updateTokenList(ctx context.Context, store *common.UserDataStore, identity 
 	metadata := common.ProcessVouchers(holdings)
 	_ = metadata
 
-	// TODO: export subprefixdb and use that instead
 	// TODO: make sure subprefixdb is thread safe when using gdbm
 	// TODO: why is address session here unless explicitly set
 	store.Db.SetSession(identity.SessionId)
@@ -94,6 +97,7 @@ func updateTokenList(ctx context.Context, store *common.UserDataStore, identity 
 	return nil
 }
 
+// set default token to given symbol.
 func updateDefaultToken(ctx context.Context, store *common.UserDataStore, identity lookup.Identity, activeSym string) error {
 	pfxDb := common.StoreToPrefixDb(store, []byte("vouchers"))
 	// TODO: the activeSym input should instead be newline separated list?
@@ -101,14 +105,15 @@ func updateDefaultToken(ctx context.Context, store *common.UserDataStore, identi
 	if err != nil {
 		return err
 	}
-	logg.TraceCtxf(ctx, "tokendaa", "d", tokenData)
 	return common.UpdateVoucherData(ctx, store, identity.SessionId, tokenData)
 }
 
+// waiter to check whether object is available on dependency endpoints.
 func updateWait(ctx context.Context) error {
 	return nil
 }
 
+// use api to resolve address to token symbol.
 func toSym(ctx context.Context, address string) ([]byte, error) {
 	voucherData, err := lookup.Api.VoucherData(ctx, address)
 	if err != nil {
@@ -117,6 +122,7 @@ func toSym(ctx context.Context, address string) ([]byte, error) {
 	return []byte(voucherData.TokenSymbol), nil
 }
 
+// execute all 
 func updateToken(ctx context.Context, store *common.UserDataStore, identity lookup.Identity, tokenAddress string) error {
 	err := updateTokenList(ctx, store, identity)
 	if err != nil {
@@ -152,6 +158,7 @@ func updateToken(ctx context.Context, store *common.UserDataStore, identity look
 	return nil
 }
 
+// attempt to coerce event as token transfer event.
 func asTokenTransferEvent(gev *geEvent.Event) (*eventTokenTransfer, bool) {
 	var err error
 	var ok bool
@@ -162,7 +169,7 @@ func asTokenTransferEvent(gev *geEvent.Event) (*eventTokenTransfer, bool) {
 	}
 
 	pl := gev.Payload
-	// assuming from and to are checksum addresses
+	// we are assuming from and to are checksum addresses
 	ev.From, ok = pl["from"].(string)
 	if !ok {
 		return nil, false
@@ -192,6 +199,9 @@ func asTokenTransferEvent(gev *geEvent.Event) (*eventTokenTransfer, bool) {
 	return &ev, true
 }
 
+// handle token transfer.
+//
+// if from and to are NOT the same, handle code will be executed once for each side of the transfer.
 func handleTokenTransfer(ctx context.Context, store *common.UserDataStore, ev *eventTokenTransfer) error {
 	identity, err := lookup.IdentityFromAddress(ctx, store, ev.From)
 	if err != nil {
@@ -204,15 +214,18 @@ func handleTokenTransfer(ctx context.Context, store *common.UserDataStore, ev *e
 			return err
 		}
 	}
-	identity, err = lookup.IdentityFromAddress(ctx, store, ev.To)
-	if err != nil {
-		if !db.IsNotFound(err) {
-			return err
-		}
-	} else {
-		err = updateToken(ctx, store, identity, ev.VoucherAddress)
+
+	if strings.Compare(ev.To, ev.From) {
+		identity, err = lookup.IdentityFromAddress(ctx, store, ev.To)
 		if err != nil {
-			return err
+			if !db.IsNotFound(err) {
+				return err
+			}
+		} else {
+			err = updateToken(ctx, store, identity, ev.VoucherAddress)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

@@ -10,9 +10,6 @@ var (
 	JetstreamClientName string
 )
 
-func init() {
-	initializers.LoadEnvVariables()
-}
 
 func LoadConfig() {
 	urdtconfig.LoadConfig()

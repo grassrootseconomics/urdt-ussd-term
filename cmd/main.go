@@ -9,9 +9,14 @@ import (
 
 	"git.defalsify.org/vise.git/db/mem"
 
+	"git.grassecon.net/urdt/ussd/initializers"
 	"git.grassecon.net/term/config"
 	"git.grassecon.net/term/event/nats"
 )
+
+func init() {
+	initializers.LoadEnvVariables()
+}
 
 func main() {
 	ctx := context.Background()

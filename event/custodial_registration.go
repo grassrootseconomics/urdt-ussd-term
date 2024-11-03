@@ -13,10 +13,12 @@ const (
 	evReg = "CUSTODIAL_REGISTRATION"
 )
 
+// fields used for handling custodial registration event.
 type eventCustodialRegistration struct {
 	Account string
 }
 
+// attempt to coerce event as custodial registration.
 func asCustodialRegistrationEvent(gev *geEvent.Event) (*eventCustodialRegistration, bool) {
 	var ok bool
 	var ev eventCustodialRegistration
@@ -32,6 +34,7 @@ func asCustodialRegistrationEvent(gev *geEvent.Event) (*eventCustodialRegistrati
 	return &ev, true
 }
 
+// handle custodial registration.
 func handleCustodialRegistration(ctx context.Context, store *common.UserDataStore, ev *eventCustodialRegistration) error {
 	identity, err := lookup.IdentityFromAddress(ctx, store, ev.Account)
 	if err != nil {

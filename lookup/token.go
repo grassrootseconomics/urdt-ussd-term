@@ -5,5 +5,6 @@ import (
 )
 
 var (
+	// Api provides the api implementation for all external lookups.
 	Api remote.AccountServiceInterface = &remote.AccountService{}
 )
