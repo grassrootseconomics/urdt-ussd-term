@@ -21,11 +21,15 @@ func init() {
 func main() {
 	config.LoadConfig()
 
+	var database string
 	var dbDir string
+
+	flag.StringVar(&database, "db", "gdbm", "database to be used")
 	flag.StringVar(&dbDir, "dbdir", ".state", "database dir to read from")
 	flag.Parse()
 
 	ctx := context.Background()
+	ctx = context.WithValue(ctx, "Database", database)
 //	db := mem.NewMemDb()
 //	err := db.Connect(ctx, "")
 //	if err != nil {
