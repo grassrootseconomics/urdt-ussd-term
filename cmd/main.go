@@ -14,6 +14,8 @@ import (
 	"git.grassecon.net/term/event/nats"
 )
 
+var build = "dev"
+
 func init() {
 	initializers.LoadEnvVariables()
 }
