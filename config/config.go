@@ -6,14 +6,13 @@ import (
 )
 
 var (
-	JetstreamURL string
+	JetstreamURL        string
 	JetstreamClientName string
 )
-
 
 func LoadConfig() {
 	urdtconfig.LoadConfig()
 
 	JetstreamURL = initializers.GetEnv("NATS_JETSTREAM_URL", "localhost:4222")
-	JetstreamClientName = initializers.GetEnv("NATS_JETSTREAM_CLIENT_NAME", "omnom")
+	JetstreamClientName = initializers.GetEnv("NATS_JETSTREAM_CLIENT_NAME", "ussd-term")
 }
